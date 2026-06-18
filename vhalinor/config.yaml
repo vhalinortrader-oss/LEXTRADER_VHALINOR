@@ -1,0 +1,48 @@
+# LEXTRADER-IAG 5.0 — configuração padrão
+# Tudo o que não for sobrescrito aqui usa os defaults em `lextrader/config.py`.
+
+symbols:
+  - BTC-USD
+  - ETH-USD
+
+timeframe: 1d
+lookback_days: 365
+source: yahoo        # yahoo | ccxt
+
+risk_profile: moderado  # conservador | moderado | agressivo
+
+indicators:
+  - rsi
+  - macd
+  - bbands
+  - sma
+  - ema
+  - atr
+  - stoch
+
+models:
+  random_forest:
+    enabled: true
+    n_estimators: 200
+    max_depth: 8
+  lstm:
+    enabled: false
+    sequence_length: 60
+    epochs: 20
+
+decision:
+  buy_threshold: 0.6
+  sell_threshold: 0.4
+  min_confidence: 0.55
+
+risk:
+  max_position_pct: 0.10
+  stop_loss_pct: 0.05
+  take_profit_pct: 0.10
+  max_open_trades: 3
+
+database: lextrader.db
+
+learning:
+  retrain_every_n_signals: 50
+  min_samples_to_train: 200

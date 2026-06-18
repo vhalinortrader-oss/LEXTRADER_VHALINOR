@@ -1,0 +1,38 @@
+# Dependências principais do LEXTRADER-IAG
+# (geralmente usadas pela base do projeto e pelo módulo de trading/sinais)
+
+numpy
+pandas
+matplotlib
+scikit-learn
+joblib
+yfinance
+pandas_ta
+PyYAML
+
+# Indicadores/estatística/monitoramento
+scipy
+psutil
+
+# Trading/integrações
+ccxt
+python-binance
+
+# Trading utilities / logging / env
+loguru
+python-dotenv
+
+# (Opcional) TensorFlow para modelos LSTM (se você usar)
+# tensorflow
+
+# (Opcional) PyTorch para modelos LSTM (se você usar)
+# torch
+
+# (Opcional) Qiskit para experimentos quânticos
+# qiskit
+
+# (Opcional) para visualizações extras
+# networkx
+
+# Obs: Tkinter costuma vir com o Python no Windows; caso contrário, instale via o instalador do Python.
+
