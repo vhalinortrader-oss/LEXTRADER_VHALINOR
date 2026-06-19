@@ -16,31 +16,19 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 
-# We load the Tk-based DecisionEngine from the repo root (DecisionEngine.py)
-# but use it in a headless adapter: we only keep its data-model in memory.
-# This avoids depending on tkinter widgets.
-
-from pathlib import Path
-import importlib.util
-import sys
-
-
-_ROOT_FILE = Path(__file__).resolve().parents[3] / "DecisionEngine.py"
-
-spec = importlib.util.spec_from_file_location("DecisionEngineRoot", _ROOT_FILE)
-if spec is None or spec.loader is None:  # pragma: no cover
-    raise ImportError(f"Não foi possível carregar {_ROOT_FILE}")
-
-_mod = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = _mod
-spec.loader.exec_module(_mod)  # type: ignore[union-attr]
-
-DecisionAlgorithm = _mod.DecisionAlgorithm
-DecisionNode = _mod.DecisionNode
-MarketDecision = _mod.MarketDecision
-AlgorithmType = _mod.AlgorithmType
-NodeStatus = _mod.NodeStatus
-DecisionType = _mod.DecisionType
+from lextrader.core.decision_domain import (
+    DecisionAlgorithm,
+    DecisionNode,
+    MarketDecision,
+    AlgorithmType,
+    NodeStatus,
+    DecisionType,
+    INITIAL_ALGORITHMS,
+    INITIAL_FLOW,
+    INITIAL_DECISIONS,
+    build_new_market_decision,
+    simulate_flow_steps,
+)
 
 
 class DecisionAlgorithmDTO(BaseModel):
@@ -153,12 +141,11 @@ class DecisionService:
         # Pull initial data from module constants
         self._lock = threading.Lock()
 
-        self._algorithms: List[DecisionAlgorithm] = [
-            *getattr(_mod, "INITIAL_ALGORITHMS"),
-        ]
+        self._algorithms: List[DecisionAlgorithm] = [*INITIAL_ALGORITHMS]
         # copy objects (dataclasses). shallow copy is okay here.
-        self._decision_flow: List[DecisionNode] = [*getattr(_mod, "INITIAL_FLOW")]
-        self._recent_decisions: List[MarketDecision] = [*getattr(_mod, "INITIAL_DECISIONS")]
+        self._decision_flow: List[DecisionNode] = [*INITIAL_FLOW]
+        self._recent_decisions: List[MarketDecision] = [*INITIAL_DECISIONS]
+
 
         self._is_processing: bool = False
         self._current_decisions: int = 14520
@@ -168,6 +155,7 @@ class DecisionService:
         self._start_live_metrics()
 
     def get_state(self) -> DecisionStateResponse:
+
         with self._lock:
             return DecisionStateResponse(
                 algorithms=[_algo_to_dto(a) for a in self._algorithms],
@@ -178,6 +166,7 @@ class DecisionService:
                 system_load=self._system_load,
                 active_tab=self._active_tab,
             )
+
 
     def toggle(self, algorithm_id: str) -> ToggleAlgorithmResponse:
         with self._lock:
@@ -196,70 +185,41 @@ class DecisionService:
                 return RunDecisionResponse(ok=False, message="Já está processando")
             self._is_processing = True
 
-        # Simulate the same flow logic as in DecisionEngine.py but in headless mode.
-        def _simulate():
-            # Reset flow
-            with self._lock:
-                self._decision_flow = [
-                    DecisionNode("1", "Coleta de Dados", "Market Data", "Processed Data", random.random() * 20 + 80, 0.02, NodeStatus.PROCESSING),
-                    DecisionNode("2", "Pré-processamento", "Raw Data", "Clean Data", 0, 0, NodeStatus.WAITING),
-                    DecisionNode("3", "Feature Engineering", "Clean Data", "Features", 0, 0, NodeStatus.WAITING),
-                    DecisionNode("4", "Análise Ensemble", "Features", "Predictions", 0, 0, NodeStatus.WAITING),
-                    DecisionNode("5", "Validação Cruzada", "Predictions", "Validated", 0, 0, NodeStatus.WAITING),
-                    DecisionNode("6", "Execução de Decisão", "Validated", "Action", 0, 0, NodeStatus.WAITING),
-                ]
+        # Simulate the same flow logic, but using the headless/core domain.
+        def _simulate() -> None:
+            # Use instance RNG derived from global time (still headless, testable via injection later).
+            rng = random.Random(int(time.time() * 1000) % (2**32 - 1))
 
-            for i in range(len(self._decision_flow)):
-                time.sleep(0.6)
+            snapshots = simulate_flow_steps(
+                initial_flow=[
+                    DecisionNode("1", "Coleta de Dados", "Market Data", "Processed Data", 0.0, 0.0, NodeStatus.PROCESSING),
+                    DecisionNode("2", "Pré-processamento", "Raw Data", "Clean Data", 0.0, 0.0, NodeStatus.WAITING),
+                    DecisionNode("3", "Feature Engineering", "Clean Data", "Features", 0.0, 0.0, NodeStatus.WAITING),
+                    DecisionNode("4", "Análise Ensemble", "Features", "Predictions", 0.0, 0.0, NodeStatus.WAITING),
+                    DecisionNode("5", "Validação Cruzada", "Predictions", "Validated", 0.0, 0.0, NodeStatus.WAITING),
+                    DecisionNode("6", "Execução de Decisão", "Validated", "Action", 0.0, 0.0, NodeStatus.WAITING),
+                ],
+                step_sleep_seconds=0.6,
+                rng=rng,
+                sleep_fn=time.sleep,
+            )
+
+            for snap in snapshots:
                 with self._lock:
-                    current = self._decision_flow[i]
-                    self._decision_flow[i] = DecisionNode(
-                        current.id,
-                        current.name,
-                        current.input_data,
-                        current.output_data,
-                        random.random() * 10 + 85,
-                        random.random() * 0.5,
-                        NodeStatus.COMPLETED,
-                    )
-
-                    if i + 1 < len(self._decision_flow):
-                        nxt = self._decision_flow[i + 1]
-                        self._decision_flow[i + 1] = DecisionNode(
-                            nxt.id,
-                            nxt.name,
-                            nxt.input_data,
-                            nxt.output_data,
-                            0,
-                            0,
-                            NodeStatus.PROCESSING,
-                        )
+                    self._decision_flow = snap
 
             time.sleep(0.5)
 
             with self._lock:
-                # Finish
                 self._is_processing = False
-
-                new_decision = MarketDecision(
-                    id=f"dec-{int(time.time())}",
-                    timestamp=time.strftime("%Y-%m-%d %H:%M:%S"),
-                    algorithm="Ensemble Multi-Algoritmo",
-                    decision=random.choice([DecisionType.BUY, DecisionType.SELL]),
-                    confidence=random.random() * 15 + 80,
-                    reasoning="Processo de decisão manual concluído com sucesso.",
-                    factors=["Manual Trigger", "Live Analysis"],
-                    risk=1.5,
-                    expected_return=3.2,
-                    timeframe="15m",
-                )
-
+                new_decision = build_new_market_decision(rng=rng)
                 self._recent_decisions.insert(0, new_decision)
                 self._current_decisions += 1
 
         threading.Thread(target=_simulate, daemon=True).start()
 
         return RunDecisionResponse(ok=True, message="Processo iniciado")
+
 
     def _start_live_metrics(self) -> None:
         def _update_loop():

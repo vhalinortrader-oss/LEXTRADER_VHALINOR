@@ -1,14 +1,28 @@
-# TODO
+# TODO - Integração Python (.py) <-> React/TSX (.tsx)
 
-- [ ] Migração para estrutura `lextrader/`
+## Etapa 1 — Inspeção do Frontend
+- [ ] Ler `src/calendar.tsx` para identificar componentes, estado atual e pontos de interação
 
-## Status
-- [x] Criar pasta `lextrader/` e subpastas base (`engine/`, `decision/`, `dashboard/tk/`, `dashboard/streamlit/`)
-- [x] Criar wrapper `lextrader/engine/inteligencia_artificial_central.py` (reexporta `Inteligencia_artificial_central.py`)
-- [x] Criar wrapper `lextrader/decision/decision_engine.py` (reexporta `DecisionEngine.py`)
-- [x] Criar wrapper `lextrader/dashboard/streamlit/automation_dashboard.py` (reexporta `AutomationDashboard.py`)
-- [x] Criar camada `lextrader/dashboard/tk/decision_dashboard.py` (import do DecisionEngine)
-- [ ] Mapear/migrar módulos do projeto raiz para `lextrader/` (demais arquivos)
-- [ ] Atualizar `README.md` e instruções de execução
-- [ ] Validar execução final (ex.: `python -m lextrader.main --mode core`)
+## Etapa 2 — Inspeção do Backend
+- [ ] Revisar `DecisionEngine.py` para extrair lógica de estado (algorithms/flow/decisions) sem depender de Tkinter
+
+## Etapa 3 — Criar Serviço Headless
+- [ ] Criar `lextrader/api/decision_service.py` com um “service” que mantém estado e executa `run`/`toggle`
+
+## Etapa 4 — Criar API FastAPI
+- [ ] Criar `lextrader/api/server.py` com endpoints:
+  - [ ] `GET /api/decision/state`
+  - [ ] `POST /api/decision/run`
+  - [ ] `POST /api/decision/toggle`
+
+## Etapa 5 — Integrar `calendar.tsx` com a API
+- [ ] Ajustar `src/calendar.tsx` para chamar a API e renderizar:
+  - [ ] lista/toggle de algoritmos
+  - [ ] timeline do `decision_flow`
+  - [ ] cards de `recent_decisions`
+
+## Etapa 6 — Execução e Testes
+- [ ] Garantir dependências no `requirements.txt`
+- [ ] Subir backend e rodar frontend
+- [ ] Validar fluxo completo: abrir UI → run → timeline atualiza
 
