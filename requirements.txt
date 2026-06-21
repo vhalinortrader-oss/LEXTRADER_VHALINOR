@@ -1,38 +1,23 @@
-# Dependências principais do LEXTRADER-IAG
-# (geralmente usadas pela base do projeto e pelo módulo de trading/sinais)
+# LEXTRADER VHALINOR — dependências de produção
 
-numpy
-pandas
-matplotlib
-scikit-learn
-joblib
-yfinance
-pandas_ta
-PyYAML
+# API
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
 
-# Indicadores/estatística/monitoramento
-scipy
-psutil
+# Dados de mercado reais
+yfinance>=0.2.40
+pandas>=2.0.0
+numpy>=1.26.0
 
-# Trading/integrações
-ccxt
-python-binance
+# Machine Learning real
+scikit-learn>=1.4.0
 
-# Trading utilities / logging / env
-loguru
-python-dotenv
+# Utilitários
+python-dotenv>=1.0.0
+loguru>=0.7.0
+PyYAML>=6.0.1
 
-# (Opcional) TensorFlow para modelos LSTM (se você usar)
-# tensorflow
-
-# (Opcional) PyTorch para modelos LSTM (se você usar)
-# torch
-
-# (Opcional) Qiskit para experimentos quânticos
-# qiskit
-
-# (Opcional) para visualizações extras
-# networkx
-
-# Obs: Tkinter costuma vir com o Python no Windows; caso contrário, instale via o instalador do Python.
-
+# Broker integrations (opcional)
+# ccxt>=4.0.0
+# python-binance>=1.0.19
